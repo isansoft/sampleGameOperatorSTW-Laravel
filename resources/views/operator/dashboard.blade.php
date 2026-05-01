@@ -124,7 +124,7 @@
                                 class="game-frame"
                                 src="{{ $activeGame['launchUrl'] }}"
                                 title="{{ $activeGame['gameName'] ?? $activeGame['gameCode'] ?? 'Game' }}"
-                                allow="autoplay; clipboard-read; clipboard-write; fullscreen"
+                                allow="camera *; microphone *; autoplay *; fullscreen *; display-capture *; clipboard-read *; clipboard-write *; encrypted-media *"
                                 allowfullscreen
                                 loading="eager"
                                 referrerpolicy="no-referrer-when-downgrade"></iframe>

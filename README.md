@@ -9,6 +9,7 @@ The sample includes:
 - A player-facing login and register page.
 - A simple operator dashboard with the provider `PrimeMacGames`.
 - A POKER game launch flow.
+- Embedded game launch in an iframe, including LiveKit video/audio browser permissions.
 - PostgreSQL tables for players, wallets, launch tokens, and wallet transactions.
 - PostgreSQL stored procedures for wallet-safe operations.
 - The required server-to-server wallet API endpoints used by the game provider.
@@ -88,6 +89,7 @@ PRIME_MAC_PROVIDER_CODE_AUTO_SYNC=true
 PRIME_MAC_PROVIDER_CODE_SYNCED=false
 PRIME_MAC_OPERATOR_PUBLIC_ID=operator-public-id-from-provider-portal
 PRIME_MAC_SIGNING_SECRET=signing-secret-from-provider-portal
+PRIME_MAC_LIVEKIT_FRAME_ORIGIN=https://livekit.poker.goscanqr.com
 ```
 
 `PRIME_MAC_PROVIDER_CODE` does not need to be guessed. The sample can fetch it
@@ -216,9 +218,13 @@ Laravel Operator
     v
 Prime Mac Games Provider API
     |
-    | redirect player to game URL
+    | return launch URL format
     v
-Game Client
+Laravel Operator Dashboard
+    |
+    | load final game URL in iframe
+    v
+Game Client with LiveKit video/audio
 
 During play:
 
@@ -244,6 +250,7 @@ POST https://stwlaravel.primemacgames.com/register
 POST https://stwlaravel.primemacgames.com/login
 POST https://stwlaravel.primemacgames.com/logout
 POST https://stwlaravel.primemacgames.com/operator/games/{gameId}/launch
+POST https://stwlaravel.primemacgames.com/operator/games/close
 ```
 
 ### Required Provider Wallet API Endpoints
@@ -312,6 +319,7 @@ PRIME_MAC_PROVIDER_CODE_SYNCED=false
 PRIME_MAC_OPERATOR_PUBLIC_ID=3a6de854-339c-4668-ab69-cad5e168a231
 PRIME_MAC_SIGNING_SECRET=your-provider-signing-secret
 PRIME_MAC_WALLET_SIGNATURE_DRIFT_MS=60000
+PRIME_MAC_LIVEKIT_FRAME_ORIGIN=https://livekit.poker.goscanqr.com
 ```
 
 Do not commit the real `.env` file. Only `.env.example` should be committed.
@@ -372,7 +380,9 @@ When a player clicks the POKER game:
 2. The operator calls the provider launch-config API.
 3. The provider returns the current launch URL format.
 4. The operator replaces `{launchToken}` and `{operatorPublicId}`.
-5. The operator redirects the player to the final game URL.
+5. The operator saves the final launch URL in the player session.
+6. The operator dashboard loads the game in a right-side iframe, while keeping
+   the operator sidebar visible.
 
 Provider launch-config endpoint:
 
@@ -392,12 +402,46 @@ Example final launch URL:
 https://livekit.poker.goscanqr.com/?launchToken=7dd1d6ee-1dad-4cf1-a560-4e087f2adb41&operatorPublicId=3a6de854-339c-4668-ab69-cad5e168a231
 ```
 
+### LiveKit Video And Audio In The Iframe
+
+POKER uses LiveKit for live video and audio. For browser camera, microphone,
+autoplay, and fullscreen to work inside an iframe, the operator page must allow
+those permissions.
+
+This sample does two things:
+
+- The game iframe includes an `allow` attribute for `camera`, `microphone`,
+  `autoplay`, `fullscreen`, `display-capture`, clipboard, and encrypted media.
+- The Laravel web response sends a `Permissions-Policy` header that delegates
+  camera, microphone, autoplay, fullscreen, and display capture to the LiveKit
+  game origin.
+
+The allowed LiveKit origin is configured with:
+
+```text
+PRIME_MAC_LIVEKIT_FRAME_ORIGIN=https://livekit.poker.goscanqr.com
+```
+
+If Prime Mac Games changes the Poker launch host, update this value and clear
+Laravel config cache:
+
+```bash
+php artisan optimize:clear
+php artisan optimize
+```
+
+Use HTTPS for the operator site. Most browsers block camera and microphone on
+non-secure origins, and the player may still need to approve browser permission
+prompts when the game starts.
+
 Important files:
 
 ```text
 app/Http/Controllers/OperatorController.php
+app/Http/Middleware/AllowLiveKitFramePermissions.php
 app/Services/ProviderApiClient.php
 app/Services/OperatorStore.php
+resources/views/operator/dashboard.blade.php
 ```
 
 ## Wallet API Security

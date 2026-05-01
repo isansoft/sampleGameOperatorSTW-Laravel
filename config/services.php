@@ -8,5 +8,6 @@ return [
         'signing_secret' => env('PRIME_MAC_SIGNING_SECRET'),
         'signature_drift_ms' => (int) env('PRIME_MAC_WALLET_SIGNATURE_DRIFT_MS', 60000),
         'provider_code_auto_sync' => filter_var(env('PRIME_MAC_PROVIDER_CODE_AUTO_SYNC', true), FILTER_VALIDATE_BOOL),
+        'livekit_frame_origin' => env('PRIME_MAC_LIVEKIT_FRAME_ORIGIN', 'https://livekit.poker.goscanqr.com'),
     ],
 ];
