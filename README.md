@@ -44,7 +44,27 @@ cd sampleGameOperatorSTW-Laravel
 composer install
 ```
 
-### 3. Create the local environment file
+### 3. Create an operator account in the provider portal
+
+Before configuring this Laravel sample, the game operator should create an
+account in the Prime Mac Games provider portal:
+
+```text
+https://portal.primemacgames.com
+```
+
+Inside the Prime Mac Games portal dashboard, generate or copy:
+
+- `operatorPublicId`
+- signing secret
+
+The `operatorPublicId` identifies the operator account. The signing secret is
+used to validate signed wallet API calls from the game provider.
+
+Keep the signing secret private. Do not commit it to GitHub, share it in chat,
+or place it in sample docs.
+
+### 4. Create the local environment file
 
 ```bash
 cp .env.example .env
@@ -66,14 +86,14 @@ DB_PASSWORD=your-local-password
 PRIME_MAC_PROVIDER_BASE_URL=https://api.primemacgames.com
 PRIME_MAC_PROVIDER_CODE_AUTO_SYNC=true
 PRIME_MAC_PROVIDER_CODE_SYNCED=false
-PRIME_MAC_OPERATOR_PUBLIC_ID=3a6de854-339c-4668-ab69-cad5e168a231
-PRIME_MAC_SIGNING_SECRET=your-provider-signing-secret
+PRIME_MAC_OPERATOR_PUBLIC_ID=operator-public-id-from-provider-portal
+PRIME_MAC_SIGNING_SECRET=signing-secret-from-provider-portal
 ```
 
-`PRIME_MAC_SIGNING_SECRET` must be the signing secret assigned by the provider.
-Do not commit the real value.
+`PRIME_MAC_PROVIDER_CODE` does not need to be guessed. The sample can fetch it
+from the provider profile endpoint after `PRIME_MAC_OPERATOR_PUBLIC_ID` is set.
 
-### 4. Create the PostgreSQL database
+### 5. Create the PostgreSQL database
 
 Example using `psql`:
 
@@ -90,7 +110,7 @@ Depending on your PostgreSQL version, you may also need:
 GRANT ALL ON SCHEMA public TO game_operator_user;
 ```
 
-### 5. Run migrations
+### 6. Run migrations
 
 ```bash
 php artisan migrate
@@ -100,7 +120,7 @@ This creates the player, wallet, launch token, provider config, nonce, and
 wallet transaction tables. It also creates the stored procedures used by the
 wallet APIs.
 
-### 6. Sync providerCode
+### 7. Sync providerCode
 
 ```bash
 php artisan prime-mac:sync-provider-code --force
@@ -114,7 +134,7 @@ GET https://api.primemacgames.com/api/portal/operators/{operatorPublicId}
 
 Then it saves `providerCode` to `.env` and `operator_provider_config`.
 
-### 7. Start the Laravel server
+### 8. Start the Laravel server
 
 ```bash
 php artisan serve
@@ -129,7 +149,7 @@ http://127.0.0.1:8000
 Click `REGISTER` to create a test player. The sample gives new players a demo
 wallet balance so they can launch POKER and test the required wallet APIs.
 
-### 8. Confirm the required API routes
+### 9. Confirm the required API routes
 
 ```bash
 php artisan route:list --except-vendor
@@ -145,7 +165,7 @@ POST api/bet/settle
 POST api/bet/rollback
 ```
 
-### 9. Test with Postman
+### 10. Test with Postman
 
 Set these Postman environment values:
 
@@ -255,6 +275,17 @@ app/Http/Controllers/Api/ProviderWalletController.php
 
 The operator public ID is created by the provider. The operator system must not
 generate it locally.
+
+Each game operator should first create an account in the Prime Mac Games
+provider portal:
+
+```text
+https://portal.primemacgames.com
+```
+
+From the provider portal dashboard, the operator can generate or copy the
+`operatorPublicId` and signing secret. These values are then placed in the
+operator system `.env` file.
 
 Current sample operator public ID:
 
