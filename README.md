@@ -26,6 +26,154 @@ Provider API base URL:
 https://api.primemacgames.com
 ```
 
+## Quick Start
+
+Use this section when you want to run the sample operator quickly on a new
+developer machine.
+
+### 1. Clone the project
+
+```bash
+git clone https://github.com/isansoft/sampleGameOperatorSTW-Laravel.git
+cd sampleGameOperatorSTW-Laravel
+```
+
+### 2. Install PHP dependencies
+
+```bash
+composer install
+```
+
+### 3. Create the local environment file
+
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+
+Update these `.env` values:
+
+```text
+APP_URL=http://127.0.0.1:8000
+
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=game_operator
+DB_USERNAME=game_operator_user
+DB_PASSWORD=your-local-password
+
+PRIME_MAC_PROVIDER_BASE_URL=https://api.primemacgames.com
+PRIME_MAC_PROVIDER_CODE_AUTO_SYNC=true
+PRIME_MAC_PROVIDER_CODE_SYNCED=false
+PRIME_MAC_OPERATOR_PUBLIC_ID=3a6de854-339c-4668-ab69-cad5e168a231
+PRIME_MAC_SIGNING_SECRET=your-provider-signing-secret
+```
+
+`PRIME_MAC_SIGNING_SECRET` must be the signing secret assigned by the provider.
+Do not commit the real value.
+
+### 4. Create the PostgreSQL database
+
+Example using `psql`:
+
+```sql
+CREATE DATABASE game_operator;
+CREATE USER game_operator_user WITH PASSWORD 'your-local-password';
+GRANT ALL PRIVILEGES ON DATABASE game_operator TO game_operator_user;
+```
+
+Depending on your PostgreSQL version, you may also need:
+
+```sql
+\c game_operator
+GRANT ALL ON SCHEMA public TO game_operator_user;
+```
+
+### 5. Run migrations
+
+```bash
+php artisan migrate
+```
+
+This creates the player, wallet, launch token, provider config, nonce, and
+wallet transaction tables. It also creates the stored procedures used by the
+wallet APIs.
+
+### 6. Sync providerCode
+
+```bash
+php artisan prime-mac:sync-provider-code --force
+```
+
+This calls:
+
+```text
+GET https://api.primemacgames.com/api/portal/operators/{operatorPublicId}
+```
+
+Then it saves `providerCode` to `.env` and `operator_provider_config`.
+
+### 7. Start the Laravel server
+
+```bash
+php artisan serve
+```
+
+Open:
+
+```text
+http://127.0.0.1:8000
+```
+
+Click `REGISTER` to create a test player. The sample gives new players a demo
+wallet balance so they can launch POKER and test the required wallet APIs.
+
+### 8. Confirm the required API routes
+
+```bash
+php artisan route:list --except-vendor
+```
+
+You should see:
+
+```text
+POST api/player/authorize
+POST api/balance/get
+POST api/bet/place
+POST api/bet/settle
+POST api/bet/rollback
+```
+
+### 9. Test with Postman
+
+Set these Postman environment values:
+
+```text
+operator_wallet_base=http://127.0.0.1:8000
+providerCode=value-from-provider-profile
+signingSecret=your-provider-signing-secret
+gameId=1
+```
+
+Create a player from the web UI first, launch the game once to generate a
+`launchToken`, then use the signed wallet API requests.
+
+To get test values for Postman:
+
+```sql
+SELECT
+    p.player_public_id AS "playerId",
+    t.launch_token AS "launchToken",
+    t.game_id AS "gameId",
+    t.game_code AS "gameCode",
+    t.expires_at AS "expiresAt"
+FROM player_launch_tokens t
+JOIN operator_players p ON p.id = t.player_id
+ORDER BY t.created_at DESC
+LIMIT 1;
+```
+
 ## How The Integration Works
 
 There are two directions of communication.
