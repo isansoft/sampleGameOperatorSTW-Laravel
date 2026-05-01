@@ -872,13 +872,13 @@ svg {
 }
 
 .game-card {
-    min-height: 340px;
+    min-height: 292px;
     border-radius: var(--radius);
     border: 1px solid #34343a;
     background: #18181c;
     padding: 22px;
     display: grid;
-    grid-template-rows: 112px auto auto 48px;
+    grid-template-rows: 112px minmax(0, auto) 48px;
     gap: 16px;
 }
 
@@ -921,32 +921,6 @@ svg {
     font-size: 18px;
 }
 
-.game-stats {
-    margin: 0;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-}
-
-.game-stats div {
-    border-radius: var(--radius);
-    background: #101012;
-    padding: 12px;
-}
-
-.game-stats dt {
-    margin: 0 0 8px;
-    color: var(--muted);
-    font-size: 14px;
-}
-
-.game-stats dd {
-    margin: 0;
-    color: #ffffff;
-    font-size: 18px;
-    font-weight: 900;
-}
-
 .manage-button {
     width: 100%;
     height: 48px;
@@ -959,6 +933,59 @@ svg {
 
 .game-card form {
     display: grid;
+}
+
+.game-frame-panel {
+    min-height: calc(100vh - 144px);
+    display: grid;
+    grid-template-rows: auto minmax(520px, 1fr);
+    gap: 16px;
+}
+
+.game-frame-header {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.game-frame-header h2 {
+    margin: 10px 0 0;
+    color: #ffffff;
+    font-size: 32px;
+    text-transform: uppercase;
+}
+
+.secondary-button {
+    min-height: 44px;
+    border: 1px solid var(--line-bright);
+    border-radius: var(--radius);
+    color: #ffffff;
+    background: #28282c;
+    padding: 0 18px;
+    font-weight: 900;
+}
+
+.secondary-button:hover {
+    border-color: var(--gold);
+    color: var(--gold);
+}
+
+.game-frame-shell {
+    min-height: 520px;
+    border-radius: var(--radius);
+    border: 1px solid rgba(255, 203, 24, 0.48);
+    background: #050505;
+    overflow: hidden;
+    box-shadow: 0 0 0 1px rgba(255, 203, 24, 0.12), var(--shadow);
+}
+
+.game-frame {
+    width: 100%;
+    height: 100%;
+    min-height: inherit;
+    border: 0;
+    background: #050505;
 }
 
 .transactions-panel {
@@ -1149,6 +1176,20 @@ svg {
     .provider-meta,
     .transaction-row {
         grid-template-columns: 1fr;
+    }
+
+    .game-frame-panel {
+        min-height: auto;
+        grid-template-rows: auto minmax(620px, 70vh);
+    }
+
+    .game-frame-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .game-frame-header h2 {
+        font-size: 26px;
     }
 
     .transaction-row em {

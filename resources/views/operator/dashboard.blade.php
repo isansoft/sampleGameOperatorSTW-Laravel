@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Game Operator Dashboard</title>
-    <link rel="stylesheet" href="{{ asset('css/operator.css') }}?v=20260430-operator-api">
+    <link rel="stylesheet" href="{{ asset('css/operator.css') }}?v=20260501-game-frame">
 </head>
 <body class="app-body">
     @php
@@ -105,90 +105,107 @@
                     </div>
                 @endif
 
-                @foreach ($providers as $provider)
-                    <section class="provider-hero" data-provider-panel>
-                        <div>
-                            <span class="section-kicker">{{ $provider['status'] }}</span>
-                            <h2>{{ $provider['name'] }}</h2>
-                            <p>Provider API: api.primemacgames.com</p>
-                            <dl class="provider-meta">
-                                <div>
-                                    <dt>Operator ID</dt>
-                                    <dd>{{ $operatorPublicId }}</dd>
-                                </div>
-                                <div>
-                                    <dt>Health</dt>
-                                    <dd>{{ strtoupper($healthStatus) }}</dd>
-                                </div>
-                            </dl>
+                @if ($activeGame)
+                    <section class="game-frame-panel" aria-label="{{ $activeGame['gameName'] ?? 'Game' }} game window">
+                        <div class="game-frame-header">
+                            <div>
+                                <span class="section-kicker">Running</span>
+                                <h2>{{ $activeGame['gameName'] ?? $activeGame['gameCode'] ?? 'Game' }}</h2>
+                            </div>
+
+                            <form method="POST" action="{{ route('operator.games.close') }}">
+                                @csrf
+                                <button class="secondary-button" type="submit">Back to Games</button>
+                            </form>
                         </div>
-                        <div class="hero-logo-frame logo-frame">
-                            <img src="{{ asset('images/'.$provider['logo']) }}" alt="{{ $provider['name'] }}">
+
+                        <div class="game-frame-shell">
+                            <iframe
+                                class="game-frame"
+                                src="{{ $activeGame['launchUrl'] }}"
+                                title="{{ $activeGame['gameName'] ?? $activeGame['gameCode'] ?? 'Game' }}"
+                                allow="autoplay; clipboard-read; clipboard-write; fullscreen"
+                                allowfullscreen
+                                loading="eager"
+                                referrerpolicy="no-referrer-when-downgrade"></iframe>
                         </div>
                     </section>
+                @else
+                    @foreach ($providers as $provider)
+                        <section class="provider-hero" data-provider-panel>
+                            <div>
+                                <span class="section-kicker">{{ $provider['status'] }}</span>
+                                <h2>{{ $provider['name'] }}</h2>
+                                <p>Provider API: api.primemacgames.com</p>
+                                <dl class="provider-meta">
+                                    <div>
+                                        <dt>Operator ID</dt>
+                                        <dd>{{ $operatorPublicId }}</dd>
+                                    </div>
+                                    <div>
+                                        <dt>Health</dt>
+                                        <dd>{{ strtoupper($healthStatus) }}</dd>
+                                    </div>
+                                </dl>
+                            </div>
+                            <div class="hero-logo-frame logo-frame">
+                                <img src="{{ asset('images/'.$provider['logo']) }}" alt="{{ $provider['name'] }}">
+                            </div>
+                        </section>
 
-                    <section class="games-panel">
+                        <section class="games-panel">
+                            <div class="section-heading">
+                                <div>
+                                    <span class="section-kicker">Games</span>
+                                    <h2>Available Games</h2>
+                                </div>
+                                <span class="game-count">{{ count($provider['games']) }} active</span>
+                            </div>
+
+                            <div class="game-grid">
+                                @foreach ($provider['games'] as $game)
+                                    <article class="game-card is-selected" data-game-card="{{ $game['code'] }}">
+                                        <div class="game-art">
+                                            <img src="{{ asset('images/'.$game['icon']) }}" alt="">
+                                        </div>
+                                        <div class="game-copy">
+                                            <span>{{ $game['status'] }}</span>
+                                            <h3>{{ $game['name'] }}</h3>
+                                            <p>{{ $game['currencyCode'] ?? $currencyCode }} wallet launch</p>
+                                        </div>
+                                        <form method="POST" action="{{ route('operator.games.launch', $game['gameId']) }}">
+                                            @csrf
+                                            <input type="hidden" name="game_code" value="{{ $game['code'] }}">
+                                            <button class="manage-button" type="submit">Launch {{ $game['name'] }}</button>
+                                        </form>
+                                    </article>
+                                @endforeach
+                            </div>
+                        </section>
+                    @endforeach
+
+                    <section class="transactions-panel" id="transactions">
                         <div class="section-heading">
                             <div>
-                                <span class="section-kicker">Games</span>
-                                <h2>Available Games</h2>
+                                <span class="section-kicker">Wallet</span>
+                                <h2>Recent Transactions</h2>
                             </div>
-                            <span class="game-count">{{ count($provider['games']) }} active</span>
                         </div>
 
-                        <div class="game-grid">
-                            @foreach ($provider['games'] as $game)
-                                <article class="game-card is-selected" data-game-card="{{ $game['code'] }}">
-                                    <div class="game-art">
-                                        <img src="{{ asset('images/'.$game['icon']) }}" alt="">
-                                    </div>
-                                    <div class="game-copy">
-                                        <span>{{ $game['status'] }}</span>
-                                        <h3>{{ $game['name'] }}</h3>
-                                        <p>{{ $game['currencyCode'] ?? $currencyCode }} wallet launch</p>
-                                    </div>
-                                    <dl class="game-stats">
-                                        <div>
-                                            <dt>Min Bet</dt>
-                                            <dd>{{ $game['minBet'] ?? '1' }}</dd>
-                                        </div>
-                                        <div>
-                                            <dt>Max Bet</dt>
-                                            <dd>{{ $game['maxBet'] ?? '1000' }}</dd>
-                                        </div>
-                                    </dl>
-                                    <form method="POST" action="{{ route('operator.games.launch', $game['gameId']) }}">
-                                        @csrf
-                                        <input type="hidden" name="game_code" value="{{ $game['code'] }}">
-                                        <button class="manage-button" type="submit">Launch {{ $game['name'] }}</button>
-                                    </form>
-                                </article>
-                            @endforeach
+                        <div class="transaction-list">
+                            @forelse ($transactions as $transaction)
+                                <div class="transaction-row">
+                                    <span>{{ strtoupper(str_replace('_', ' ', $transaction['transactionType'] ?? 'transaction')) }}</span>
+                                    <strong>{{ $transaction['currencyCode'] ?? $currencyCode }} {{ number_format((float) ($transaction['amount'] ?? 0), 2) }}</strong>
+                                    <small>{{ $transaction['transactionId'] ?? '' }}</small>
+                                    <em>{{ $transaction['createdAt'] ?? '' }}</em>
+                                </div>
+                            @empty
+                                <div class="empty-state">No wallet transactions yet.</div>
+                            @endforelse
                         </div>
                     </section>
-                @endforeach
-
-                <section class="transactions-panel" id="transactions">
-                    <div class="section-heading">
-                        <div>
-                            <span class="section-kicker">Wallet</span>
-                            <h2>Recent Transactions</h2>
-                        </div>
-                    </div>
-
-                    <div class="transaction-list">
-                        @forelse ($transactions as $transaction)
-                            <div class="transaction-row">
-                                <span>{{ strtoupper(str_replace('_', ' ', $transaction['transactionType'] ?? 'transaction')) }}</span>
-                                <strong>{{ $transaction['currencyCode'] ?? $currencyCode }} {{ number_format((float) ($transaction['amount'] ?? 0), 2) }}</strong>
-                                <small>{{ $transaction['transactionId'] ?? '' }}</small>
-                                <em>{{ $transaction['createdAt'] ?? '' }}</em>
-                            </div>
-                        @empty
-                            <div class="empty-state">No wallet transactions yet.</div>
-                        @endforelse
-                    </div>
-                </section>
+                @endif
             </main>
         </section>
     </div>

@@ -13,6 +13,8 @@ use Illuminate\View\View;
 
 class OperatorController extends Controller
 {
+    private const ACTIVE_GAME_SESSION_KEY = 'active_game';
+
     public function login(Request $request): View|RedirectResponse
     {
         if ($request->session()->has('player_id')) {
@@ -125,8 +127,6 @@ class OperatorController extends Controller
                 'gameId' => (int) ($game['gameId'] ?? 1),
                 'tables' => 0,
                 'players' => 0,
-                'minBet' => $game['minBet'] ?? null,
-                'maxBet' => $game['maxBet'] ?? null,
                 'currencyCode' => $game['currencyCode'] ?? $player['currencyCode'],
             ])
             ->values()
@@ -141,8 +141,6 @@ class OperatorController extends Controller
                 'gameId' => 1,
                 'tables' => 0,
                 'players' => 0,
-                'minBet' => 1,
-                'maxBet' => 1000,
                 'currencyCode' => $player['currencyCode'],
             ]];
         }
@@ -166,6 +164,7 @@ class OperatorController extends Controller
             'operatorPublicId' => $operatorPublicId,
             'providerHealth' => $providerHealth,
             'transactions' => $transactions,
+            'activeGame' => $this->activeGameFromSession($request),
         ]);
     }
 
@@ -206,17 +205,40 @@ class OperatorController extends Controller
             return back()->withErrors(['launch' => 'Provider launch configuration is not available.']);
         }
 
-        // Step 3: replace {launchToken} and redirect the player to the game.
-        return redirect()->away($provider->buildLaunchUrl(
+        // Step 3: replace {launchToken} and keep the game inside the operator
+        // shell. This lets the sample show the left operator menu while the
+        // provider game runs in the right-side iframe.
+        $launchUrl = $provider->buildLaunchUrl(
             $launchConfig['launchUrlFormat'],
             (string) $tokenResult['launchToken'],
             $operatorPublicId
-        ));
+        );
+
+        $request->session()->put(self::ACTIVE_GAME_SESSION_KEY, [
+            'gameId' => $gameId,
+            'gameCode' => $gameCode,
+            'gameName' => $gameCode,
+            'launchUrl' => $launchUrl,
+            'startedAt' => now()->toIso8601String(),
+        ]);
+
+        return redirect()->route('operator.dashboard');
+    }
+
+    public function closeGame(Request $request): RedirectResponse
+    {
+        if (!$request->session()->has('player_id')) {
+            return redirect()->route('operator.login');
+        }
+
+        $request->session()->forget(self::ACTIVE_GAME_SESSION_KEY);
+
+        return redirect()->route('operator.dashboard');
     }
 
     public function logout(Request $request): RedirectResponse
     {
-        $request->session()->forget('player_id');
+        $request->session()->forget(['player_id', self::ACTIVE_GAME_SESSION_KEY]);
         $request->session()->regenerateToken();
 
         return redirect()->route('operator.login');
@@ -250,5 +272,16 @@ class OperatorController extends Controller
             'provider_config_missing' => 'Provider configuration is missing.',
             default => Str::headline($error),
         };
+    }
+
+    private function activeGameFromSession(Request $request): ?array
+    {
+        $activeGame = $request->session()->get(self::ACTIVE_GAME_SESSION_KEY);
+
+        if (!is_array($activeGame) || empty($activeGame['launchUrl'])) {
+            return null;
+        }
+
+        return $activeGame;
     }
 }
