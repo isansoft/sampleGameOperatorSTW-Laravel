@@ -7,5 +7,6 @@ return [
         'operator_public_id' => env('PRIME_MAC_OPERATOR_PUBLIC_ID'),
         'signing_secret' => env('PRIME_MAC_SIGNING_SECRET'),
         'signature_drift_ms' => (int) env('PRIME_MAC_WALLET_SIGNATURE_DRIFT_MS', 60000),
+        'provider_code_auto_sync' => filter_var(env('PRIME_MAC_PROVIDER_CODE_AUTO_SYNC', true), FILTER_VALIDATE_BOOL),
     ],
 ];

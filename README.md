@@ -128,12 +128,62 @@ Required `.env` values:
 ```text
 PRIME_MAC_PROVIDER_BASE_URL=https://api.primemacgames.com
 PRIME_MAC_PROVIDER_CODE="Prime Mac Games"
+PRIME_MAC_PROVIDER_CODE_AUTO_SYNC=true
+PRIME_MAC_PROVIDER_CODE_SYNCED=false
 PRIME_MAC_OPERATOR_PUBLIC_ID=3a6de854-339c-4668-ab69-cad5e168a231
 PRIME_MAC_SIGNING_SECRET=your-provider-signing-secret
 PRIME_MAC_WALLET_SIGNATURE_DRIFT_MS=60000
 ```
 
 Do not commit the real `.env` file. Only `.env.example` should be committed.
+
+### How providerCode Is Discovered
+
+The operator should not guess or generate `providerCode`. The provider assigns
+it to the operator account. This sample gets it from:
+
+```text
+GET https://api.primemacgames.com/api/portal/operators/{operatorPublicId}
+```
+
+Example response:
+
+```json
+{
+  "operatorPublicId": "3a6de854-339c-4668-ab69-cad5e168a231",
+  "operatorName": "STW-Operator",
+  "providerCode": "Prime Mac Games",
+  "status": 1,
+  "statusName": "Active"
+}
+```
+
+On application startup, the sample checks `PRIME_MAC_PROVIDER_CODE_SYNCED`.
+When it is `false`, the app:
+
+1. Calls the provider profile endpoint using `PRIME_MAC_OPERATOR_PUBLIC_ID`.
+2. Reads `providerCode` from the response.
+3. Updates `operator_provider_config.provider_code`.
+4. Writes `PRIME_MAC_PROVIDER_CODE` to `.env`.
+5. Sets `PRIME_MAC_PROVIDER_CODE_SYNCED=true` in `.env`.
+
+This keeps startup traffic low: after the first successful sync, the operator
+uses the local saved provider code.
+
+You can also run the sync manually:
+
+```bash
+php artisan prime-mac:sync-provider-code --force
+```
+
+Important files:
+
+```text
+app/Services/ProviderCodeSynchronizer.php
+app/Services/ProviderApiClient.php
+app/Services/OperatorStore.php
+database/migrations/2026_05_01_000001_add_provider_code_sync_procedure.php
+```
 
 ## Game Launch Flow
 
@@ -584,6 +634,7 @@ balance changes atomic, easier to audit, and safer for concurrent requests.
 | --- | --- |
 | sp_provider_config_upsert | Creates or updates the singleton provider config row. |
 | sp_provider_config_get | Reads provider config. |
+| sp_provider_code_sync | Saves providerCode returned by the provider profile endpoint. |
 | sp_player_register | Creates a player and starting wallet. |
 | sp_player_login_lookup | Finds an active player by username for login. |
 | sp_player_mark_login | Updates `last_login_at`. |
@@ -697,6 +748,8 @@ Update `.env` provider settings:
 ```text
 PRIME_MAC_PROVIDER_BASE_URL=https://api.primemacgames.com
 PRIME_MAC_PROVIDER_CODE="Prime Mac Games"
+PRIME_MAC_PROVIDER_CODE_AUTO_SYNC=true
+PRIME_MAC_PROVIDER_CODE_SYNCED=false
 PRIME_MAC_OPERATOR_PUBLIC_ID=3a6de854-339c-4668-ab69-cad5e168a231
 PRIME_MAC_SIGNING_SECRET=your-provider-signing-secret
 PRIME_MAC_WALLET_SIGNATURE_DRIFT_MS=60000
@@ -852,4 +905,3 @@ As long as `OperatorStore` returns the same response shape to
 - Keep complete wallet transaction history.
 - Use database transactions or stored procedures for wallet updates.
 - Monitor logs for failed signatures and failed wallet operations.
-

@@ -16,7 +16,25 @@ Current sample value:
 ```text
 PRIME_MAC_OPERATOR_PUBLIC_ID=3a6de854-339c-4668-ab69-cad5e168a231
 PRIME_MAC_PROVIDER_CODE="Prime Mac Games"
+PRIME_MAC_PROVIDER_CODE_AUTO_SYNC=true
+PRIME_MAC_PROVIDER_CODE_SYNCED=false
 PRIME_MAC_PROVIDER_BASE_URL=https://api.primemacgames.com
+```
+
+The operator should not invent `PRIME_MAC_PROVIDER_CODE`. On startup, this
+sample can read it from:
+
+```text
+GET https://api.primemacgames.com/api/portal/operators/{operatorPublicId}
+```
+
+After a successful response, the app saves `providerCode` to `.env` and
+`operator_provider_config`.
+
+Manual sync command:
+
+```bash
+php artisan prime-mac:sync-provider-code --force
 ```
 
 ## Launch URL Flow
@@ -239,6 +257,7 @@ operator_provider_config
 Important stored procedures:
 
 ```text
+sp_provider_code_sync
 sp_launch_token_create
 sp_launch_token_authorize
 sp_balance_get

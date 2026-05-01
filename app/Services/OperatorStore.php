@@ -28,6 +28,17 @@ class OperatorStore
         return $result;
     }
 
+    public function syncProviderCode(string $providerCode, ?string $providerName = null): array
+    {
+        // The providerCode belongs to the provider-created operator account.
+        // This updates the stored config after reading it from the provider
+        // profile endpoint: GET /api/portal/operators/{operatorPublicId}.
+        return $this->callJson(
+            'SELECT sp_provider_code_sync(?, ?) AS result',
+            [$providerName, $providerCode]
+        );
+    }
+
     public function registerPlayer(
         string $username,
         string $displayName,
