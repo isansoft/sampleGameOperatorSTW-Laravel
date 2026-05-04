@@ -21,7 +21,16 @@ class OperatorStore
     {
         $result = $this->callJson('SELECT sp_provider_config_get() AS result');
 
-        if (!$includeSecret) {
+        if ($includeSecret) {
+            // Keep the signing secret in the deployment environment. The
+            // database stores a copy for the sample schema, but the environment
+            // value is the safer runtime source and avoids stale DB secrets
+            // after an operator rotates credentials in .env.
+            $environmentSecret = (string) config('services.prime_mac.signing_secret', '');
+            if ($environmentSecret !== '') {
+                $result['signing_secret'] = $environmentSecret;
+            }
+        } else {
             unset($result['signing_secret']);
         }
 

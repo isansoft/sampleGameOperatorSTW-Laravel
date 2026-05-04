@@ -89,6 +89,7 @@ PRIME_MAC_PROVIDER_CODE_AUTO_SYNC=true
 PRIME_MAC_PROVIDER_CODE_SYNCED=false
 PRIME_MAC_OPERATOR_PUBLIC_ID=operator-public-id-from-provider-portal
 PRIME_MAC_SIGNING_SECRET=signing-secret-from-provider-portal
+PRIME_MAC_SIGNATURE_DEBUG=false
 PRIME_MAC_LIVEKIT_FRAME_ORIGIN=https://livekit.poker.goscanqr.com
 ```
 
@@ -319,6 +320,7 @@ PRIME_MAC_PROVIDER_CODE_SYNCED=false
 PRIME_MAC_OPERATOR_PUBLIC_ID=3a6de854-339c-4668-ab69-cad5e168a231
 PRIME_MAC_SIGNING_SECRET=your-provider-signing-secret
 PRIME_MAC_WALLET_SIGNATURE_DRIFT_MS=60000
+PRIME_MAC_SIGNATURE_DEBUG=false
 PRIME_MAC_LIVEKIT_FRAME_ORIGIN=https://livekit.poker.goscanqr.com
 ```
 
@@ -485,6 +487,11 @@ The sample validates signatures in:
 app/Services/ProviderSignatureValidator.php
 ```
 
+The runtime signing secret is read from `PRIME_MAC_SIGNING_SECRET` in the
+Laravel environment/config. The sample database has a provider config table, but
+the environment value takes priority so a rotated secret in `.env` does not get
+overridden by a stale database copy.
+
 The validator checks:
 
 - Provider code.
@@ -494,6 +501,17 @@ The validator checks:
 - HMAC signature.
 
 Nonce values are stored in `provider_request_nonces`.
+
+For temporary troubleshooting, set this in `.env` and clear config cache:
+
+```text
+PRIME_MAC_SIGNATURE_DEBUG=true
+```
+
+This writes debug-level signature validation failure details to the Laravel log,
+including the method, path/query, provider code, timestamp, nonce, raw body,
+received signature, recomputed signature, and reject reason. It does not log the
+signing secret. Keep this disabled in normal operation.
 
 ## Required API Endpoint Details
 
@@ -1066,7 +1084,26 @@ php -l app/Http/Controllers/Api/ProviderWalletController.php
 php -l app/Services/ProviderApiClient.php
 php -l app/Services/ProviderSignatureValidator.php
 php -l app/Services/OperatorStore.php
+php -l scripts/test-signed-balance-request.php
 ```
+
+Test the exact signed balance contract:
+
+```bash
+php scripts/test-signed-balance-request.php \
+    --base-url=https://stwlaravel.primemacgames.com \
+    --player-id=16c530e7-f5d2-4ca3-bb08-3a275197e5af
+```
+
+The script signs this exact body with `PRIME_MAC_SIGNING_SECRET`:
+
+```json
+{"playerId":"16c530e7-f5d2-4ca3-bb08-3a275197e5af"}
+```
+
+The test passes when the response is not `401 unauthorized_signature`. A
+business response such as `player_not_found` still proves signature validation
+passed.
 
 Test the provider launch URL builder:
 
