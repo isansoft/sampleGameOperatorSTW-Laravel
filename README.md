@@ -10,6 +10,7 @@ The sample includes:
 - A simple operator dashboard with the provider `PrimeMacGames`.
 - A POKER game launch flow.
 - Embedded game launch in an iframe, including LiveKit video/audio browser permissions.
+- A floating live wallet API monitor for iframe gameplay.
 - PostgreSQL tables for players, wallets, launch tokens, and wallet transactions.
 - PostgreSQL stored procedures for wallet-safe operations.
 - The required server-to-server wallet API endpoints used by the game provider.
@@ -91,6 +92,7 @@ PRIME_MAC_OPERATOR_PUBLIC_ID=operator-public-id-from-provider-portal
 PRIME_MAC_SIGNING_SECRET=signing-secret-from-provider-portal
 PRIME_MAC_SIGNATURE_DEBUG=false
 PRIME_MAC_LIVEKIT_FRAME_ORIGIN=https://livekit.poker.goscanqr.com
+PRIME_MAC_API_MONITOR_ENABLED=true
 ```
 
 `PRIME_MAC_PROVIDER_CODE` does not need to be guessed. The sample can fetch it
@@ -252,6 +254,7 @@ POST https://stwlaravel.primemacgames.com/login
 POST https://stwlaravel.primemacgames.com/logout
 POST https://stwlaravel.primemacgames.com/operator/games/{gameId}/launch
 POST https://stwlaravel.primemacgames.com/operator/games/close
+GET  https://stwlaravel.primemacgames.com/operator/api-logs/stream
 ```
 
 ### Required Provider Wallet API Endpoints
@@ -322,6 +325,7 @@ PRIME_MAC_SIGNING_SECRET=your-provider-signing-secret
 PRIME_MAC_WALLET_SIGNATURE_DRIFT_MS=60000
 PRIME_MAC_SIGNATURE_DEBUG=false
 PRIME_MAC_LIVEKIT_FRAME_ORIGIN=https://livekit.poker.goscanqr.com
+PRIME_MAC_API_MONITOR_ENABLED=true
 ```
 
 Do not commit the real `.env` file. Only `.env.example` should be committed.
@@ -444,6 +448,39 @@ app/Http/Middleware/AllowLiveKitFramePermissions.php
 app/Services/ProviderApiClient.php
 app/Services/OperatorStore.php
 resources/views/operator/dashboard.blade.php
+```
+
+### Live Wallet API Monitor
+
+When a player launches a game in the iframe, the dashboard shows a floating
+`Wallet API Calls` monitor. It displays wallet endpoints used by that logged-in
+player while the game server talks to the operator API.
+
+The monitor uses Server-Sent Events:
+
+```text
+GET /operator/api-logs/stream
+```
+
+The stream is authenticated with the player's Laravel session and only returns
+rows for that player's `player_public_id`. It is intentionally one-way from the
+operator backend to the browser, so it does not need a separate WebSocket server.
+
+The provider callback controller writes safe log rows after signature
+validation. Normal monitor logs do not store signing secrets, full signatures,
+or raw request bodies.
+
+To disable the floating monitor:
+
+```text
+PRIME_MAC_API_MONITOR_ENABLED=false
+```
+
+Then refresh Laravel config cache:
+
+```bash
+php artisan optimize:clear
+php artisan optimize
 ```
 
 ## Wallet API Security
@@ -866,6 +903,32 @@ Indexes and constraints:
 - Unique `(provider_code, nonce)`.
 - Index on `expires_at`.
 
+### api_request_logs
+
+Stores safe, player-scoped provider wallet API activity for the live dashboard
+monitor.
+
+| Column | Type | Purpose |
+| --- | --- | --- |
+| id | bigserial | Internal API log row ID. |
+| player_public_id | varchar(80) | Player public ID used to scope dashboard logs. |
+| endpoint_path | varchar(160) | Wallet endpoint path, for example `/api/balance/get`. |
+| http_method | varchar(12) | HTTP method used by provider. |
+| response_status | integer | HTTP status returned by the operator API. |
+| request_hash | varchar(64) | SHA-256 hash of the raw request body. |
+| game_id | integer | Provider game ID when present. |
+| game_code | varchar(40) | Provider game code when present. |
+| round_id | varchar(160) | Round or match ID when present. |
+| transaction_id | varchar(180) | Provider transaction ID when present. |
+| error_code | varchar(160) | Operator error code when request fails. |
+| request_summary | jsonb | Safe subset of request fields for display. |
+| created_at | timestamptz | Row creation time. |
+
+Indexes:
+
+- `(player_public_id, id DESC)`.
+- `(created_at DESC)`.
+
 ## Stored Procedures
 
 The sample intentionally uses stored procedures for wallet operations. This makes
@@ -884,6 +947,8 @@ balance changes atomic, easier to audit, and safer for concurrent requests.
 | sp_launch_token_authorize | Exchanges launch token for player details. |
 | sp_balance_get | Returns current wallet balance. |
 | sp_provider_nonce_record | Stores nonce and rejects replayed nonce values. |
+| sp_api_request_log_create | Stores a safe live API monitor log row. |
+| sp_api_request_logs_for_player | Reads player-scoped API monitor logs. |
 | sp_wallet_apply | Shared low-level debit/credit function. |
 | sp_wallet_bet_place | Debits wallet for a bet. |
 | sp_wallet_bet_settle | Credits wallet for a settlement/payout. |

@@ -12,4 +12,5 @@ Route::post('/operator/wallet/cash-in', [OperatorController::class, 'cashIn'])->
 Route::post('/operator/wallet/cash-out', [OperatorController::class, 'cashOut'])->name('operator.wallet.cash-out');
 Route::post('/operator/games/{gameId}/launch', [OperatorController::class, 'launchGame'])->name('operator.games.launch');
 Route::post('/operator/games/close', [OperatorController::class, 'closeGame'])->name('operator.games.close');
+Route::get('/operator/api-logs/stream', [OperatorController::class, 'streamApiLogs'])->name('operator.api-logs.stream');
 Route::redirect('/dashboard', '/operator');

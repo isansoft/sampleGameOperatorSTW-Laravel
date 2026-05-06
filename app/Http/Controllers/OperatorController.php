@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class OperatorController extends Controller
 {
@@ -114,6 +116,7 @@ class OperatorController extends Controller
         $providerGames = $provider->games($operatorPublicId);
         $providerHealth = $provider->health($operatorPublicId);
         $transactions = $store->recentTransactions((int) $playerId);
+        $apiLogs = $store->apiLogsForPlayer((string) $player['playerPublicId'], 0, 10);
 
         // Show only games that the provider says are active and enabled for
         // this operatorPublicId. The operator should not hard-code enabled games.
@@ -164,7 +167,59 @@ class OperatorController extends Controller
             'operatorPublicId' => $operatorPublicId,
             'providerHealth' => $providerHealth,
             'transactions' => $transactions,
+            'apiLogs' => $apiLogs,
+            'apiMonitorEnabled' => (bool) config('services.prime_mac.api_monitor_enabled', true),
             'activeGame' => $this->activeGameFromSession($request),
+        ]);
+    }
+
+    public function streamApiLogs(Request $request, OperatorStore $store): StreamedResponse|Response
+    {
+        if (!(bool) config('services.prime_mac.api_monitor_enabled', true)) {
+            return response('API monitor disabled', 404);
+        }
+
+        $playerId = $request->session()->get('player_id');
+        if (!$playerId) {
+            return response('Unauthorized', 401);
+        }
+
+        $playerResult = $store->player((int) $playerId);
+        if (($playerResult['ok'] ?? false) !== true) {
+            return response('Unauthorized', 401);
+        }
+
+        $playerPublicId = (string) ($playerResult['player']['playerPublicId'] ?? '');
+        $afterId = max(0, (int) $request->query('after_id', 0));
+
+        return response()->stream(function () use ($store, $playerPublicId, $afterId): void {
+            $lastId = $afterId;
+            $startedAt = time();
+
+            echo ": connected\n\n";
+            $this->flushStream();
+
+            while (!connection_aborted() && time() - $startedAt < 55) {
+                $logs = $store->apiLogsForPlayer($playerPublicId, $lastId, 40);
+
+                foreach ($logs as $log) {
+                    $lastId = max($lastId, (int) ($log['id'] ?? 0));
+
+                    echo 'id: '.$lastId."\n";
+                    echo "event: api-log\n";
+                    echo 'data: '.json_encode($log, JSON_THROW_ON_ERROR)."\n\n";
+                }
+
+                echo ": heartbeat\n\n";
+                $this->flushStream();
+
+                sleep(2);
+            }
+        }, 200, [
+            'Content-Type' => 'text/event-stream',
+            'Cache-Control' => 'no-cache, no-transform',
+            'Connection' => 'keep-alive',
+            'X-Accel-Buffering' => 'no',
         ]);
     }
 
@@ -283,5 +338,14 @@ class OperatorController extends Controller
         }
 
         return $activeGame;
+    }
+
+    private function flushStream(): void
+    {
+        if (ob_get_level() > 0) {
+            ob_flush();
+        }
+
+        flush();
     }
 }

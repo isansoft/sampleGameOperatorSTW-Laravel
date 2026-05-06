@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Game Operator Dashboard</title>
-    <link rel="stylesheet" href="{{ asset('css/operator.css') }}?v=20260501-game-frame">
+    <link rel="stylesheet" href="{{ asset('css/operator.css') }}?v=20260506-api-monitor">
 </head>
 <body class="app-body">
     @php
@@ -129,6 +129,29 @@
                                 loading="eager"
                                 referrerpolicy="no-referrer-when-downgrade"></iframe>
                         </div>
+
+                        @if ($apiMonitorEnabled)
+                            <aside
+                                class="api-monitor"
+                                data-api-monitor
+                                data-stream-url="{{ route('operator.api-logs.stream') }}"
+                                data-initial-logs='@json($apiLogs)'
+                                aria-label="Live wallet API monitor">
+                                <div class="api-monitor-header">
+                                    <div>
+                                        <span class="api-monitor-kicker">Live Monitor</span>
+                                        <strong>Wallet API Calls</strong>
+                                    </div>
+                                    <span class="api-monitor-status" data-api-monitor-status>Connecting</span>
+                                </div>
+                                <div class="api-monitor-latest" data-api-monitor-latest>No API calls yet.</div>
+                                <div class="api-monitor-actions">
+                                    <button type="button" data-api-monitor-pause>Pause</button>
+                                    <button type="button" data-api-monitor-clear>Clear</button>
+                                </div>
+                                <ol class="api-monitor-list" data-api-monitor-list></ol>
+                            </aside>
+                        @endif
                     </section>
                 @else
                     @foreach ($providers as $provider)
@@ -214,6 +237,6 @@
         <span></span>
     </button>
 
-    <script src="{{ asset('js/operator.js') }}?v=20260430-register-modal"></script>
+    <script src="{{ asset('js/operator.js') }}?v=20260506-api-monitor"></script>
 </body>
 </html>

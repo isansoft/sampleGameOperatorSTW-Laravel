@@ -106,6 +106,38 @@ class OperatorStore
         );
     }
 
+    public function logApiRequest(array $entry): array
+    {
+        // API monitor logs are intentionally safe and compact. They never store
+        // signing secrets, full signatures, or raw request bodies.
+        return $this->callJson(
+            'SELECT sp_api_request_log_create(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb) AS result',
+            [
+                $entry['playerPublicId'] ?? null,
+                $entry['endpointPath'] ?? '',
+                $entry['httpMethod'] ?? 'POST',
+                (int) ($entry['responseStatus'] ?? 0),
+                $entry['requestHash'] ?? null,
+                isset($entry['gameId']) ? (int) $entry['gameId'] : null,
+                $entry['gameCode'] ?? null,
+                $entry['roundId'] ?? null,
+                $entry['transactionId'] ?? null,
+                $entry['errorCode'] ?? null,
+                json_encode($entry['requestSummary'] ?? [], JSON_THROW_ON_ERROR),
+            ]
+        );
+    }
+
+    public function apiLogsForPlayer(string $playerPublicId, int $afterId = 0, int $limit = 40): array
+    {
+        $result = $this->callJson(
+            'SELECT sp_api_request_logs_for_player(?, ?, ?) AS result',
+            [$playerPublicId, $afterId, $limit]
+        );
+
+        return array_values($result);
+    }
+
     public function placeBet(array $payload, string $requestHash): array
     {
         // Stored procedure handles: player lookup, row lock, balance debit,

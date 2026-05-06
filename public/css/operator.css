@@ -988,6 +988,139 @@ svg {
     background: #050505;
 }
 
+.api-monitor {
+    position: fixed;
+    right: 28px;
+    bottom: 124px;
+    z-index: 12;
+    width: min(430px, calc(100vw - 56px));
+    max-height: min(520px, calc(100vh - 180px));
+    border: 1px solid rgba(255, 203, 24, 0.58);
+    border-radius: var(--radius);
+    background: rgba(15, 15, 18, 0.94);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.56), 0 0 30px rgba(255, 203, 24, 0.14);
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+}
+
+.api-monitor-header {
+    min-height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.api-monitor-kicker {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--green);
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.api-monitor-header strong {
+    font-size: 18px;
+}
+
+.api-monitor-status {
+    min-height: 28px;
+    border-radius: 999px;
+    padding: 6px 10px;
+    color: #111113;
+    background: var(--gold);
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.api-monitor-status[data-state="ok"] {
+    background: var(--green);
+}
+
+.api-monitor-status[data-state="paused"],
+.api-monitor-status[data-state="warning"] {
+    background: var(--gold);
+}
+
+.api-monitor-status[data-state="error"] {
+    color: #ffffff;
+    background: var(--red);
+}
+
+.api-monitor-latest {
+    min-height: 44px;
+    padding: 12px 16px;
+    color: var(--gold);
+    background: rgba(0, 0, 0, 0.34);
+    font-size: 14px;
+    font-weight: 900;
+    overflow-wrap: anywhere;
+}
+
+.api-monitor-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 10px 16px;
+}
+
+.api-monitor-actions button {
+    min-height: 36px;
+    border: 1px solid var(--line-bright);
+    border-radius: var(--radius);
+    color: #ffffff;
+    background: #28282c;
+    font-weight: 900;
+}
+
+.api-monitor-actions button:hover {
+    border-color: var(--gold);
+    color: var(--gold);
+}
+
+.api-monitor-list {
+    max-height: 330px;
+    margin: 0;
+    padding: 0 16px 16px;
+    list-style: none;
+    overflow: auto;
+    display: grid;
+    gap: 8px;
+}
+
+.api-monitor-list li {
+    border-left: 4px solid var(--green);
+    border-radius: 4px;
+    background: #111113;
+    padding: 10px 12px;
+}
+
+.api-monitor-list li.is-error {
+    border-left-color: var(--red);
+}
+
+.api-monitor-list strong,
+.api-monitor-list span {
+    display: block;
+}
+
+.api-monitor-list strong {
+    margin-bottom: 6px;
+    color: #ffffff;
+    font-size: 14px;
+}
+
+.api-monitor-list span {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
 .transactions-panel {
     margin-top: 24px;
 }
@@ -1190,6 +1323,13 @@ svg {
 
     .game-frame-header h2 {
         font-size: 26px;
+    }
+
+    .api-monitor {
+        right: 14px;
+        bottom: 110px;
+        width: calc(100vw - 28px);
+        max-height: min(460px, calc(100vh - 150px));
     }
 
     .transaction-row em {

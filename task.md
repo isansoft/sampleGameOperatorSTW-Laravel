@@ -13,7 +13,7 @@ Status values:
 
 ### GO-001 Live API Endpoint Monitor For Iframe Game
 
-Status: `TODO`
+Status: `DONE`
 
 Created: `2026-05-06`
 
@@ -89,3 +89,27 @@ Open decision:
 If the team specifically needs two-way realtime control later, replace or extend
 SSE with Laravel Reverb/WebSockets. For the first version, SSE is the lower-risk
 choice.
+
+Completed: `2026-05-06`
+
+Implementation summary:
+
+- Added `api_request_logs` table.
+- Added stored procedures:
+  - `sp_api_request_log_create`
+  - `sp_api_request_logs_for_player`
+- Logged all five signed wallet endpoints through the shared provider wallet
+  controller.
+- Added authenticated SSE endpoint:
+  - `GET /operator/api-logs/stream`
+- Added floating dashboard monitor with connected/reconnecting/paused states.
+- Added pause and clear controls.
+- Added `PRIME_MAC_API_MONITOR_ENABLED` config flag.
+- Updated README documentation.
+
+Verification:
+
+- Signed `POST /api/balance/get` returned HTTP `200`.
+- A matching player-scoped API log row was written for
+  `16c530e7-f5d2-4ca3-bb08-3a275197e5af`.
+- Unauthenticated `GET /operator/api-logs/stream` returns HTTP `401`.

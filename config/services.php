@@ -10,5 +10,6 @@ return [
         'signature_debug' => filter_var(env('PRIME_MAC_SIGNATURE_DEBUG', false), FILTER_VALIDATE_BOOL),
         'provider_code_auto_sync' => filter_var(env('PRIME_MAC_PROVIDER_CODE_AUTO_SYNC', true), FILTER_VALIDATE_BOOL),
         'livekit_frame_origin' => env('PRIME_MAC_LIVEKIT_FRAME_ORIGIN', 'https://livekit.poker.goscanqr.com'),
+        'api_monitor_enabled' => filter_var(env('PRIME_MAC_API_MONITOR_ENABLED', true), FILTER_VALIDATE_BOOL),
     ],
 ];
