@@ -992,7 +992,7 @@ svg {
     position: fixed;
     right: 28px;
     bottom: 124px;
-    z-index: 12;
+    z-index: 18;
     width: min(430px, calc(100vw - 56px));
     max-height: min(520px, calc(100vh - 180px));
     border: 1px solid rgba(255, 203, 24, 0.58);
@@ -1003,6 +1003,10 @@ svg {
     backdrop-filter: blur(10px);
 }
 
+.api-monitor.is-dragging {
+    box-shadow: 0 28px 86px rgba(0, 0, 0, 0.68), 0 0 34px rgba(255, 203, 24, 0.22);
+}
+
 .api-monitor-header {
     min-height: 70px;
     display: flex;
@@ -1011,6 +1015,13 @@ svg {
     gap: 16px;
     padding: 14px 16px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+}
+
+.api-monitor.is-dragging .api-monitor-header {
+    cursor: grabbing;
 }
 
 .api-monitor-kicker {

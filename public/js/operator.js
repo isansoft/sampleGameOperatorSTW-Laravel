@@ -93,11 +93,77 @@
         const status = apiMonitor.querySelector('[data-api-monitor-status]');
         const pauseButton = apiMonitor.querySelector('[data-api-monitor-pause]');
         const clearButton = apiMonitor.querySelector('[data-api-monitor-clear]');
+        const dragHandle = apiMonitor.querySelector('[data-api-monitor-drag]');
         let logs = [];
         let lastId = 0;
         let paused = false;
         let eventSource = null;
         let reconnectTimer = null;
+        let dragState = null;
+        let hasCustomMonitorPosition = false;
+        const monitorPositionKey = 'gameOperator.apiMonitor.position';
+
+        const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+        const saveMonitorPosition = () => {
+            if (!hasCustomMonitorPosition) {
+                return;
+            }
+
+            const rect = apiMonitor.getBoundingClientRect();
+
+            try {
+                window.localStorage.setItem(monitorPositionKey, JSON.stringify({
+                    left: Math.round(rect.left),
+                    top: Math.round(rect.top),
+                }));
+            } catch (error) {
+                // The monitor still works if browser storage is disabled.
+            }
+        };
+
+        const setMonitorPosition = (left, top, persist = true) => {
+            const rect = apiMonitor.getBoundingClientRect();
+            const margin = 12;
+            const maxLeft = Math.max(margin, window.innerWidth - rect.width - margin);
+            const maxTop = Math.max(margin, window.innerHeight - rect.height - margin);
+
+            apiMonitor.style.left = `${clamp(left, margin, maxLeft)}px`;
+            apiMonitor.style.top = `${clamp(top, margin, maxTop)}px`;
+            apiMonitor.style.right = 'auto';
+            apiMonitor.style.bottom = 'auto';
+            hasCustomMonitorPosition = true;
+
+            if (persist) {
+                saveMonitorPosition();
+            }
+        };
+
+        const restoreMonitorPosition = () => {
+            try {
+                const saved = JSON.parse(window.localStorage.getItem(monitorPositionKey) || 'null');
+
+                if (saved && Number.isFinite(saved.left) && Number.isFinite(saved.top)) {
+                    setMonitorPosition(saved.left, saved.top, false);
+                }
+            } catch (error) {
+                // Ignore corrupt or unavailable saved positions.
+            }
+        };
+
+        const finishDrag = (event) => {
+            if (!dragState) {
+                return;
+            }
+
+            if (dragHandle && dragHandle.hasPointerCapture(event.pointerId)) {
+                dragHandle.releasePointerCapture(event.pointerId);
+            }
+
+            dragState = null;
+            apiMonitor.classList.remove('is-dragging');
+            saveMonitorPosition();
+        };
 
         const setStatus = (text, state) => {
             if (!status) {
@@ -218,6 +284,45 @@
                 reconnectTimer = window.setTimeout(connect, 2000);
             };
         };
+
+        restoreMonitorPosition();
+
+        if (dragHandle && window.PointerEvent) {
+            dragHandle.addEventListener('pointerdown', (event) => {
+                if (event.target.closest('button, a, input, select, textarea')) {
+                    return;
+                }
+
+                const rect = apiMonitor.getBoundingClientRect();
+                dragState = {
+                    offsetX: event.clientX - rect.left,
+                    offsetY: event.clientY - rect.top,
+                };
+
+                dragHandle.setPointerCapture(event.pointerId);
+                apiMonitor.classList.add('is-dragging');
+            });
+
+            dragHandle.addEventListener('pointermove', (event) => {
+                if (!dragState) {
+                    return;
+                }
+
+                setMonitorPosition(event.clientX - dragState.offsetX, event.clientY - dragState.offsetY, false);
+            });
+
+            dragHandle.addEventListener('pointerup', finishDrag);
+            dragHandle.addEventListener('pointercancel', finishDrag);
+        }
+
+        window.addEventListener('resize', () => {
+            if (!hasCustomMonitorPosition) {
+                return;
+            }
+
+            const rect = apiMonitor.getBoundingClientRect();
+            setMonitorPosition(rect.left, rect.top);
+        });
 
         parseInitialLogs().forEach(remember);
         render();

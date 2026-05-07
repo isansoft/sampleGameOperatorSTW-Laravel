@@ -452,9 +452,14 @@ resources/views/operator/dashboard.blade.php
 
 ### Live Wallet API Monitor
 
-When a player launches a game in the iframe, the dashboard shows a floating
-`Wallet API Calls` monitor. It displays wallet endpoints used by that logged-in
-player while the game server talks to the operator API.
+When a player launches a game in the iframe, the dashboard shows a draggable
+floating `Wallet API Calls` monitor. The monitor is rendered outside the game
+iframe, so it does not interfere with the game client or LiveKit media. Drag the
+monitor by its header to place it anywhere on the operator page; the browser
+remembers the last position for that device.
+
+It displays wallet endpoints used by that logged-in player while the game server
+talks to the operator API.
 
 The monitor uses Server-Sent Events:
 

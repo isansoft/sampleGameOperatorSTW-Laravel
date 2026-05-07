@@ -103,6 +103,8 @@ Implementation summary:
 - Added authenticated SSE endpoint:
   - `GET /operator/api-logs/stream`
 - Added floating dashboard monitor with connected/reconnecting/paused states.
+- Moved the monitor outside the game iframe section and made it draggable by its
+  header.
 - Added pause and clear controls.
 - Added `PRIME_MAC_API_MONITOR_ENABLED` config flag.
 - Updated README documentation.
